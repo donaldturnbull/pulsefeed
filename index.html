@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseFeed PWA - RSS Reader</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(107, 114, 128, 0.7); }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+</head>
+<body class="h-full bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 antialiased flex flex-col md:flex-row transition-colors duration-200">
+
+    <!-- Mobile Top Header -->
+    <header class="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <button id="mobileMenuBtn" aria-label="Toggle Navigation Menu" class="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-rss text-brand-600 dark:text-brand-500 text-xl"></i>
+                <span class="font-bold text-lg tracking-tight">PulseFeed</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="pwaInstallBtnMobile" class="hidden p-2 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-gray-700" title="Install App">
+                <i class="fa-solid fa-download text-lg"></i>
+            </button>
+            <button id="themeToggleBtnMobile" aria-label="Toggle Theme" class="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                <i class="fa-solid fa-moon text-lg dark:hidden"></i>
+                <i class="fa-solid fa-sun text-lg hidden dark:block text-amber-400"></i>
+            </button>
+            <button id="refreshBtnMobile" aria-label="Refresh Feed" class="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                <i class="fa-solid fa-arrows-rotate text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-gray-900/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity duration-300"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <!-- Sidebar Header Desktop -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 hidden md:flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="p-2 bg-brand-500/10 rounded-xl">
+                    <i class="fa-solid fa-rss text-brand-600 dark:text-brand-500 text-xl"></i>
+                </div>
+                <span class="font-bold text-xl tracking-tight">PulseFeed</span>
+            </div>
+            <div class="flex items-center space-x-1">
+                <button id="pwaInstallBtnDesktop" class="hidden p-2 rounded-lg text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-gray-700" title="Install App">
+                    <i class="fa-solid fa-download text-lg"></i>
+                </button>
+                <button id="themeToggleBtnDesktop" aria-label="Toggle Theme" class="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none transition-colors">
+                    <i class="fa-solid fa-moon text-lg dark:hidden"></i>
+                    <i class="fa-solid fa-sun text-lg hidden dark:block text-amber-400"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Custom Feed Button -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <button id="openAddFeedModalBtn" class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-xl shadow-sm transition-all duration-150 active:scale-[0.98]">
+                <i class="fa-solid fa-plus text-sm"></i>
+                <span>Add RSS Feed</span>
+            </button>
+        </div>
+
+        <!-- Feed List / Navigation Categories -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-6">
+            <div id="presetCategories">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 px-2">Feeds & Categories</h3>
+                <div id="categoryContainer" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+            <span id="pwaStatus">Offline Ready</span>
+            <span id="feedCountBadge" class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full font-medium">0 Feeds</span>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-[calc(100vh-57px)] md:h-screen overflow-hidden">
+        <!-- Top Toolbar -->
+        <div class="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between z-10">
+            <div class="flex items-center space-x-3 overflow-hidden">
+                <div class="min-w-0">
+                    <h1 id="currentFeedTitle" class="text-xl font-bold text-gray-900 dark:text-white truncate">All Feeds</h1>
+                    <p id="currentFeedSubtitle" class="text-xs text-gray-500 dark:text-gray-400 truncate">Latest updates from your subscriptions</p>
+                </div>
+            </div>
+
+            <!-- Controls: Search + Refresh -->
+            <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="Search articles..." class="w-full pl-9 pr-8 py-2 text-sm bg-gray-100 dark:bg-gray-700/60 border border-transparent dark:border-gray-600 rounded-xl focus:bg-white dark:focus:bg-gray-800 focus:border-brand-500 focus:outline-none transition-all">
+                    <button id="clearSearchBtn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <button id="refreshBtnDesktop" title="Refresh Feed" class="hidden sm:flex items-center justify-center p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl transition-colors">
+                    <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Article List Stream -->
+        <div id="contentStream" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4"></div>
+    </main>
+
+    <!-- Modal: Add Custom Feed -->
+    <div id="addFeedModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 transform scale-95 transition-transform duration-200">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Add RSS Feed</h2>
+                <button id="closeAddFeedModalBtn" class="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="addFeedForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Feed Name</label>
+                    <input type="text" id="feedTitleInput" required placeholder="e.g. Hacker News" class="w-full px-3.5 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">RSS / Atom Feed URL</label>
+                    <input type="url" id="feedUrlInput" required placeholder="https://news.ycombinator.com/rss" class="w-full px-3.5 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Category</label>
+                    <input type="text" id="feedCategoryInput" list="categorySuggestions" required placeholder="Tech, News, Science..." class="w-full px-3.5 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:border-brand-500">
+                    <datalist id="categorySuggestions">
+                        <option value="Tech">
+                        <option value="News">
+                        <option value="Science">
+                        <option value="Culture">
+                    </datalist>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" id="cancelAddFeedBtn" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-sm transition-all">Save Feed</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Article Reader Drawer -->
+    <div id="articleReaderModal" class="fixed inset-0 z-50 flex justify-end bg-gray-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-2xl h-full flex flex-col shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md z-10">
+                <div class="flex items-center space-x-2">
+                    <button id="closeReaderBtn" class="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                        <i class="fa-solid fa-arrow-left text-base"></i>
+                    </button>
+                    <span id="readerSourceBadge" class="text-xs font-semibold px-2.5 py-1 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-md">Source</span>
+                </div>
+                <a id="readerExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center space-x-1.5">
+                    <span class="hidden sm:inline text-xs font-medium">Original</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div>
+                    <h1 id="readerTitle" class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-tight mb-3">Article Title</h1>
+                    <div class="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span id="readerAuthor"><i class="fa-regular fa-user mr-1"></i> Author</span>
+                        <span>•</span>
+                        <span id="readerDate"><i class="fa-regular fa-clock mr-1"></i> Date</span>
+                    </div>
+                </div>
+
+                <div id="readerBannerContainer" class="hidden">
+                    <img id="readerBannerImg" src="" alt="Article Banner" class="w-full h-64 object-cover rounded-2xl shadow-sm">
+                </div>
+
+                <div id="readerBody" class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 space-y-4 text-base leading-relaxed break-words"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Application Script -->
+    <script>
+        const INITIAL_FEEDS = [
+            { name: "Hacker News", url: "https://news.ycombinator.com/rss", category: "Tech" },
+            { name: "TechCrunch", url: "https://techcrunch.com/feed/", category: "Tech" },
+            { name: "BBC News", url: "https://feeds.bbci.co.uk/news/rss.xml", category: "News" },
+            { name: "NASA News", url: "https://www.nasa.gov/rss/dyn/breaking_news.rss", category: "Science" }
+        ];
+
+        let state = {
+            feeds: [],
+            articles: [],
+            currentFilter: { type: 'all', value: null },
+            searchQuery: '',
+            isLoading: false,
+            darkMode: false,
+            deferredInstallPrompt: null
+        };
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.warn('Service Worker registration failed:', err));
+            });
+        }
+
+        // Handle PWA Installation Event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            state.deferredInstallPrompt = e;
+            document.getElementById('pwaInstallBtnDesktop').classList.remove('hidden');
+            document.getElementById('pwaInstallBtnMobile').classList.remove('hidden');
+        });
+
+        function triggerPwaInstall() {
+            if (state.deferredInstallPrompt) {
+                state.deferredInstallPrompt.prompt();
+                state.deferredInstallPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showToast("App installed successfully!", "success");
+                    }
+                    state.deferredInstallPrompt = null;
+                    document.getElementById('pwaInstallBtnDesktop').classList.add('hidden');
+                    document.getElementById('pwaInstallBtnMobile').classList.add('hidden');
+                });
+            }
+        }
+
+        const elements = {
+            sidebar: document.getElementById('sidebar'),
+            sidebarOverlay: document.getElementById('sidebarOverlay'),
+            mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+            categoryContainer: document.getElementById('categoryContainer'),
+            contentStream: document.getElementById('contentStream'),
+            currentFeedTitle: document.getElementById('currentFeedTitle'),
+            currentFeedSubtitle: document.getElementById('currentFeedSubtitle'),
+            searchInput: document.getElementById('searchInput'),
+            clearSearchBtn: document.getElementById('clearSearchBtn'),
+            feedCountBadge: document.getElementById('feedCountBadge'),
+            addFeedModal: document.getElementById('addFeedModal'),
+            openAddFeedModalBtn: document.getElementById('openAddFeedModalBtn'),
+            closeAddFeedModalBtn: document.getElementById('closeAddFeedModalBtn'),
+            cancelAddFeedBtn: document.getElementById('cancelAddFeedBtn'),
+            addFeedForm: document.getElementById('addFeedForm'),
+            feedTitleInput: document.getElementById('feedTitleInput'),
+            feedUrlInput: document.getElementById('feedUrlInput'),
+            feedCategoryInput: document.getElementById('feedCategoryInput'),
+            articleReaderModal: document.getElementById('articleReaderModal'),
+            closeReaderBtn: document.getElementById('closeReaderBtn'),
+            readerTitle: document.getElementById('readerTitle'),
+            readerSourceBadge: document.getElementById('readerSourceBadge'),
+            readerAuthor: document.getElementById('readerAuthor'),
+            readerDate: document.getElementById('readerDate'),
+            readerBannerContainer: document.getElementById('readerBannerContainer'),
+            readerBannerImg: document.getElementById('readerBannerImg'),
+            readerBody: document.getElementById('readerBody'),
+            readerExternalLink: document.getElementById('readerExternalLink'),
+            refreshBtnDesktop: document.getElementById('refreshBtnDesktop'),
+            refreshBtnMobile: document.getElementById('refreshBtnMobile'),
+            themeToggleBtnDesktop: document.getElementById('themeToggleBtnDesktop'),
+            themeToggleBtnMobile: document.getElementById('themeToggleBtnMobile'),
+            toastContainer: document.getElementById('toastContainer')
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadFeeds();
+            setupEventListeners();
+            renderSidebar();
+            loadAllFeeds();
+        });
+
+        function initTheme() {
+            const saved = localStorage.getItem('pulsefeed_theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                state.darkMode = true;
+            } else {
+                document.documentElement.classList.remove('dark');
+                state.darkMode = false;
+            }
+        }
+
+        function toggleTheme() {
+            state.darkMode = !state.darkMode;
+            document.documentElement.classList.toggle('dark', state.darkMode);
+            localStorage.setItem('pulsefeed_theme', state.darkMode ? 'dark' : 'light');
+        }
+
+        function loadFeeds() {
+            const stored = localStorage.getItem('pulsefeed_user_feeds');
+            state.feeds = stored ? JSON.parse(stored) : INITIAL_FEEDS;
+            const cachedArticles = localStorage.getItem('pulsefeed_cached_articles');
+            if (cachedArticles) {
+                state.articles = JSON.parse(cachedArticles);
+            }
+        }
+
+        function saveFeeds() {
+            localStorage.setItem('pulsefeed_user_feeds', JSON.stringify(state.feeds));
+        }
+
+        function cacheArticles(articles) {
+            try {
+                localStorage.setItem('pulsefeed_cached_articles', JSON.stringify(articles.slice(0, 100)));
+            } catch (e) {
+                console.warn('Storage quota reached, unable to cache all articles locally.');
+            }
+        }
+
+        function renderSidebar() {
+            elements.categoryContainer.innerHTML = '';
+            const categories = {};
+            state.feeds.forEach(feed => {
+                if (!categories[feed.category]) categories[feed.category] = [];
+                categories[feed.category].push(feed);
+            });
+
+            elements.feedCountBadge.textContent = `${state.feeds.length} Feeds`;
+
+            const allBtn = document.createElement('button');
+            allBtn.className = `w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-xl transition-colors ${state.currentFilter.type === 'all' ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`;
+            allBtn.innerHTML = `<div class="flex items-center space-x-2.5"><i class="fa-solid fa-border-all text-xs"></i><span>All Subscriptions</span></div>`;
+            allBtn.onclick = () => selectFilter('all', null, "All Subscriptions", "Latest articles from all feeds");
+            elements.categoryContainer.appendChild(allBtn);
+
+            Object.keys(categories).forEach(cat => {
+                const group = document.createElement('div');
+                group.className = "space-y-1";
+
+                const catHeader = document.createElement('button');
+                catHeader.className = `w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${state.currentFilter.type === 'category' && state.currentFilter.value === cat ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`;
+                catHeader.innerHTML = `
+                    <div class="flex items-center space-x-2"><i class="fa-solid fa-folder text-brand-500/80"></i><span>${escapeHtml(cat)}</span></div>
+                    <span class="text-[10px] font-normal px-1.5 py-0.5 bg-gray-200/60 dark:bg-gray-700 rounded-full">${categories[cat].length}</span>
+                `;
+                catHeader.onclick = () => selectFilter('category', cat, `${cat} Stream`, `Articles categorized under ${cat}`);
+                group.appendChild(catHeader);
+
+                const subList = document.createElement('div');
+                subList.className = "pl-4 space-y-0.5 border-l border-gray-100 dark:border-gray-700/60 ml-3.5";
+
+                categories[cat].forEach(feed => {
+                    const feedBtn = document.createElement('div');
+                    feedBtn.className = `group flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg transition-colors ${state.currentFilter.type === 'feed' && state.currentFilter.value === feed.url ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/40'}`;
+                    feedBtn.innerHTML = `
+                        <button class="flex-1 text-left truncate mr-1">${escapeHtml(feed.name)}</button>
+                        <button class="delete-feed-btn opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity" title="Delete Feed"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                    `;
+                    feedBtn.querySelector('button').onclick = () => selectFilter('feed', feed.url, feed.name, feed.url);
+                    feedBtn.querySelector('.delete-feed-btn').onclick = (e) => {
+                        e.stopPropagation();
+                        deleteFeed(feed.url);
+                    };
+                    subList.appendChild(feedBtn);
+                });
+
+                group.appendChild(subList);
+                elements.categoryContainer.appendChild(group);
+            });
+        }
+
+        function selectFilter(type, value, title, subtitle) {
+            state.currentFilter = { type, value };
+            elements.currentFeedTitle.textContent = title;
+            elements.currentFeedSubtitle.textContent = subtitle;
+            renderSidebar();
+            closeMobileMenu();
+            renderArticles();
+        }
+
+        async function fetchFeedContent(feedUrl) {
+            try {
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                        return data.items.map(item => ({
+                            id: item.guid || item.link || Math.random().toString(),
+                            title: item.title || "Untitled",
+                            link: item.link || "#",
+                            author: item.author || data.feed?.title || "Unknown",
+                            pubDate: item.pubDate ? new Date(item.pubDate) : new Date(),
+                            snippet: cleanTextSnippet(item.description || item.content || ""),
+                            content: item.content || item.description || "",
+                            thumbnail: item.thumbnail || extractImageFromHtml(item.content || item.description),
+                            source: data.feed?.title || feedUrl
+                        }));
+                    }
+                }
+            } catch (e) {
+                console.warn(`Primary RSS fetch failed for ${feedUrl}, trying fallback...`, e);
+            }
+
+            try {
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(feedUrl)}`;
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                    const xmlText = await res.text();
+                    return parseXmlFeed(xmlText, feedUrl);
+                }
+            } catch (e) {
+                console.error(`All fetch attempts failed for ${feedUrl}`, e);
+            }
+
+            return [];
+        }
+
+        function parseXmlFeed(xmlText, fallbackSource) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const items = [];
+            const xmlItems = xmlDoc.querySelectorAll("item, entry");
+            xmlItems.forEach(item => {
+                const desc = item.querySelector("description, summary, content")?.textContent || "";
+                items.push({
+                    id: item.querySelector("guid, id")?.textContent || Math.random().toString(),
+                    title: item.querySelector("title")?.textContent || "Untitled",
+                    link: item.querySelector("link")?.textContent || item.querySelector("link")?.getAttribute("href") || "#",
+                    author: item.querySelector("author, creator")?.textContent || fallbackSource,
+                    pubDate: new Date(item.querySelector("pubDate, updated, published")?.textContent || Date.now()),
+                    snippet: cleanTextSnippet(desc),
+                    content: desc,
+                    thumbnail: extractImageFromHtml(desc),
+                    source: fallbackSource
+                });
+            });
+            return items;
+        }
+
+        async function loadAllFeeds() {
+            state.isLoading = true;
+            renderSkeletons();
+
+            try {
+                const fetchPromises = state.feeds.map(async feed => {
+                    const items = await fetchFeedContent(feed.url);
+                    return items.map(item => ({ ...item, feedCategory: feed.category, feedUrl: feed.url }));
+                });
+
+                const results = (await Promise.all(fetchPromises)).flat();
+                if (results.length > 0) {
+                    results.sort((a, b) => b.pubDate - a.pubDate);
+                    state.articles = results;
+                    cacheArticles(results);
+                }
+            } catch (err) {
+                showToast("Offline or network issue. Loaded cached feeds.", "warning");
+            } finally {
+                state.isLoading = false;
+                renderArticles();
+            }
+        }
+
+        function renderSkeletons() {
+            elements.contentStream.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const skel = document.createElement('div');
+                skel.className = "bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 animate-pulse flex flex-col sm:flex-row gap-4";
+                skel.innerHTML = `
+                    <div class="flex-1 space-y-3">
+                        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                        <div class="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                    </div>
+                    <div class="w-full sm:w-32 h-28 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                `;
+                elements.contentStream.appendChild(skel);
+            }
+        }
+
+        function renderArticles() {
+            let filtered = state.articles;
+
+            if (state.currentFilter.type === 'category') {
+                filtered = filtered.filter(a => a.feedCategory === state.currentFilter.value);
+            } else if (state.currentFilter.type === 'feed') {
+                filtered = filtered.filter(a => a.feedUrl === state.currentFilter.value);
+            }
+
+            if (state.searchQuery.trim() !== '') {
+                const query = state.searchQuery.toLowerCase();
+                filtered = filtered.filter(a => 
+                    a.title.toLowerCase().includes(query) || 
+                    a.snippet.toLowerCase().includes(query)
+                );
+            }
+
+            elements.contentStream.innerHTML = '';
+
+            if (filtered.length === 0) {
+                elements.contentStream.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-12 text-center text-gray-400 dark:text-gray-500">
+                        <i class="fa-regular fa-folder-open text-5xl mb-3"></i>
+                        <p class="text-base font-medium text-gray-600 dark:text-gray-300">No articles available</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(article => {
+                const card = document.createElement('article');
+                card.className = "bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 hover:border-brand-500/50 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-4 cursor-pointer group";
+
+                card.innerHTML = `
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-[11px] font-semibold px-2.5 py-0.5 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-md">${escapeHtml(article.source)}</span>
+                                <span class="text-xs text-gray-400">•</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${formatDate(article.pubDate)}</span>
+                            </div>
+                            <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-2 mb-1.5">${escapeHtml(article.title)}</h2>
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">${escapeHtml(article.snippet)}</p>
+                        </div>
+                    </div>
+                    ${article.thumbnail ? `
+                        <div class="w-full sm:w-32 h-32 shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-700">
+                            <img src="${article.thumbnail}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.parentElement.remove()">
+                        </div>
+                    ` : ''}
+                `;
+
+                card.onclick = () => openReader(article);
+                elements.contentStream.appendChild(card);
+            });
+        }
+
+        function openReader(article) {
+            elements.readerTitle.textContent = article.title;
+            elements.readerSourceBadge.textContent = article.source;
+            elements.readerAuthor.innerHTML = `<i class="fa-regular fa-user mr-1"></i> ${escapeHtml(article.author)}`;
+            elements.readerDate.innerHTML = `<i class="fa-regular fa-clock mr-1"></i> ${formatDate(article.pubDate)}`;
+            elements.readerExternalLink.href = article.link;
+
+            if (article.thumbnail) {
+                elements.readerBannerImg.src = article.thumbnail;
+                elements.readerBannerContainer.classList.remove('hidden');
+            } else {
+                elements.readerBannerContainer.classList.add('hidden');
+            }
+
+            elements.readerBody.innerHTML = article.content || article.snippet;
+
+            elements.articleReaderModal.classList.remove('hidden');
+            setTimeout(() => {
+                elements.articleReaderModal.classList.remove('opacity-0');
+                elements.articleReaderModal.firstElementChild.classList.remove('translate-x-full');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeReader() {
+            elements.articleReaderModal.firstElementChild.classList.add('translate-x-full');
+            elements.articleReaderModal.classList.add('opacity-0');
+            setTimeout(() => {
+                elements.articleReaderModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        elements.addFeedForm.onsubmit = (e) => {
+            e.preventDefault();
+            const name = elements.feedTitleInput.value.trim();
+            const url = elements.feedUrlInput.value.trim();
+            const category = elements.feedCategoryInput.value.trim() || 'General';
+
+            if (state.feeds.some(f => f.url === url)) {
+                showToast("Feed URL already exists!", "warning");
+                return;
+            }
+
+            state.feeds.push({ name, url, category });
+            saveFeeds();
+            renderSidebar();
+            closeAddModal();
+            showToast("Feed added successfully!", "success");
+            loadAllFeeds();
+        };
+
+        function deleteFeed(url) {
+            state.feeds = state.feeds.filter(f => f.url !== url);
+            saveFeeds();
+            renderSidebar();
+            showToast("Feed removed", "info");
+            loadAllFeeds();
+        }
+
+        function openAddModal() {
+            elements.addFeedModal.classList.remove('hidden');
+            setTimeout(() => {
+                elements.addFeedModal.classList.remove('opacity-0');
+                elements.addFeedModal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeAddModal() {
+            elements.addFeedModal.firstElementChild.classList.add('scale-95');
+            elements.addFeedModal.classList.add('opacity-0');
+            setTimeout(() => {
+                elements.addFeedModal.classList.add('hidden');
+                elements.addFeedForm.reset();
+            }, 200);
+        }
+
+        function cleanTextSnippet(html) {
+            const tmp = document.createElement("DIV");
+            tmp.innerHTML = html;
+            return (tmp.textContent || tmp.innerText || "").replace(/\s+/g, ' ').trim();
+        }
+
+        function extractImageFromHtml(html) {
+            if (!html) return null;
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.querySelector('img')?.src || null;
+        }
+
+        function formatDate(d) {
+            const date = new Date(d);
+            if (isNaN(date)) return "Recently";
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+        }
+
+        function showToast(msg, type = "info") {
+            const toast = document.createElement('div');
+            toast.className = `bg-gray-800 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center space-x-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<span>${escapeHtml(msg)}</span>`;
+            elements.toastContainer.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function openMobileMenu() {
+            elements.sidebar.classList.remove('-translate-x-full');
+            elements.sidebarOverlay.classList.remove('hidden');
+        }
+
+        function closeMobileMenu() {
+            elements.sidebar.classList.add('-translate-x-full');
+            elements.sidebarOverlay.classList.add('hidden');
+        }
+
+        function setupEventListeners() {
+            elements.mobileMenuBtn.onclick = openMobileMenu;
+            elements.sidebarOverlay.onclick = closeMobileMenu;
+            elements.refreshBtnDesktop.onclick = loadAllFeeds;
+            elements.refreshBtnMobile.onclick = loadAllFeeds;
+            elements.themeToggleBtnDesktop.onclick = toggleTheme;
+            elements.themeToggleBtnMobile.onclick = toggleTheme;
+            elements.openAddFeedModalBtn.onclick = openAddModal;
+            elements.closeAddFeedModalBtn.onclick = closeAddModal;
+            elements.cancelAddFeedBtn.onclick = closeAddModal;
+            elements.closeReaderBtn.onclick = closeReader;
+
+            document.getElementById('pwaInstallBtnDesktop').onclick = triggerPwaInstall;
+            document.getElementById('pwaInstallBtnMobile').onclick = triggerPwaInstall;
+
+            elements.searchInput.oninput = (e) => {
+                state.searchQuery = e.target.value;
+                elements.clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+                renderArticles();
+            };
+
+            elements.clearSearchBtn.onclick = () => {
+                elements.searchInput.value = '';
+                state.searchQuery = '';
+                elements.clearSearchBtn.classList.add('hidden');
+                renderArticles();
+            };
+        }
+    </script>
+</body>
+</html>
